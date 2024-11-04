@@ -55,5 +55,5 @@ def process_step_files(folder_path: str):
 
 if __name__ == "__main__":
     # Specify the folder containing STEP files
-    folder_path = 'abc_0000'  # Update with your actual folder path
+    folder_path = 'abc'  # Update with your actual folder path
     process_step_files(folder_path)
