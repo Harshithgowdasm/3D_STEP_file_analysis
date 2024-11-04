@@ -38,7 +38,7 @@ def detect_holes(step_file_path):
     return hole_count
 
 # Example usage
-folder_path = "abc_0000_data"
+folder_path = "Selected"
 
 # List all STEP files in the folder
 file_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.endswith(".step")]

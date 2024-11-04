@@ -48,6 +48,8 @@ for file_path in file_paths:
     mean_curvatures, gaussian_curvatures = curvature_analysis(file_path)
     curvature_data[file_path] = (mean_curvatures, gaussian_curvatures)
 
+print(curvature_data['abc_0000_data/abc_00000003.step'])
+
 # Visualize the curvature comparison
 fig, ax = plt.subplots(2, 1, figsize=(14, 10))
 

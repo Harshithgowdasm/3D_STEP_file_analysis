@@ -1,7 +1,7 @@
 import os
 
 # Specify the folder path
-folder_path = 'abc'
+folder_path = 'Selected'
 start_number = 1
 
 # Get all files in the directory
