@@ -17,7 +17,7 @@ def get_volume(file_path):
     return props.Mass()
 
 # Define folder path containing STEP files
-folder_path = "Selected"
+folder_path = "abc_0000_data"
 
 # List all STEP files in the folder
 file_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.endswith(".step")]
