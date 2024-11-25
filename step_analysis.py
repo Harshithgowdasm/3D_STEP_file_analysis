@@ -1,4 +1,5 @@
 import os
+import shutil
 import pandas as pd
 import numpy as np
 from OCC.Core.STEPControl import STEPControl_Reader
@@ -47,14 +48,11 @@ def analyze_step_file(file_path):
         edge_explorer.Next()
         edge_count += 1
 
-    complexity = "Simple" if face_count < 20 and curved_face_count < 9 and vert_count < 60 else "Complex"
-
     return {
         "Total Faces": face_count,
         "Curved Faces": curved_face_count,
         "Total Edges": edge_count,
         "Vertices": vert_count,
-        "Complexity (Face/Edge)": complexity
     }
 
 
@@ -123,14 +121,13 @@ def analyze_complexity_by_curvature(file_path):
 
     curvature_std_dev = np.std(curvatures)
     curvature_mean = np.mean(curvatures)
-    complexity = "Simple" if curvature_std_dev < 0.1 and bbox_volume < 1.0 else "Complex"
 
     return {
         "Bounding Box Volume": bbox_volume,
         "Mean Curvature": curvature_mean,
         "Curvature Std Dev": curvature_std_dev,
-        "Complexity (Curvature)": complexity
     }
+
 
 
 def run_analysis_for_folder(folder_path):
@@ -155,3 +152,46 @@ def run_analysis_for_folder(folder_path):
 
     df = pd.DataFrame(all_results)
     return df
+
+def criteria_count(row):
+    criteria = [
+        10 <= row["Total Faces"] <= 150,
+        2 <= row["Curved Faces"] <= 50,
+        100 <= row["Total Edges"] <= 1500,
+        100 <= row["Vertices"] <= 2500,
+        row["Bounding Box Volume"] < 0.2e6,
+        0 > row["Mean Curvature"] >= -0.15,
+        0 < row["Curvature Std Dev"] <= 0.2,
+        1e5 <= row["Volume"] <= 0.13e6,
+        5 <= row["Hole Count"] <= 50
+    ]
+
+    return sum(criteria)
+
+
+def file_selection(folder_path, destination_folder):
+    if not os.path.exists(destination_folder):
+        os.makedirs(destination_folder)
+
+    # Generate analysis DataFrame from the folder
+    data = run_analysis_for_folder(folder_path)
+
+    # Add a column to count how many criteria are met for each row
+    data['Criteria Met'] = data.apply(criteria_count, axis=1)
+    
+    # Filter rows meeting at least 7 criteria
+    filtered_data = data[data['Criteria Met'] >= 7]
+    
+    if not filtered_data.empty:
+        #print(f"Rows meeting at least 7 criteria:")
+        #print(filtered_data[['File Name', 'Criteria Met']])  # Adjust column names if different
+
+        # Copy files meeting the criteria to the destination folder
+        for _, row in filtered_data.iterrows():
+            file_path = os.path.join(folder_path, row['File Name'])
+            print(f"File meets {row['Criteria Met']} criteria: {row['File Name']}")
+            shutil.copy(file_path, os.path.join(destination_folder, row['File Name']))
+    else:
+        print(f"No files meet at least 7 criteria.")
+    
+    return data

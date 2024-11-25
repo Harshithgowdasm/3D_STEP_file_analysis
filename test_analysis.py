@@ -2,14 +2,10 @@
 
 import step_analysis
 
-# Define the path to the folder containing STEP files
-folder_path = "All"
-
-# Run the analysis and store the results
-result_df = step_analysis.run_analysis_for_folder(folder_path)
-
-# Save the results to a CSV file
+source_folder = "Selected"
+destination_folder = "selected_automation_1"
+result_df = step_analysis.file_selection(source_folder, destination_folder)
 result_df.to_csv('analysis_df.csv', index=False)
 
-# Print the results
+#Print the results
 #print(result_df)
