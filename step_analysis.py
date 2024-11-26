@@ -164,6 +164,9 @@ def criteria_count(row):
         0 < row["Curvature Std Dev"] <= 0.2,
         1e5 <= row["Volume"] <= 0.13e6,
         5 <= row["Hole Count"] <= 50
+        # file size filter 
+        # 
+
     ]
 
     return sum(criteria)
@@ -173,20 +176,14 @@ def file_selection(folder_path, destination_folder):
     if not os.path.exists(destination_folder):
         os.makedirs(destination_folder)
 
-    # Generate analysis DataFrame from the folder
     data = run_analysis_for_folder(folder_path)
-
-    # Add a column to count how many criteria are met for each row
     data['Criteria Met'] = data.apply(criteria_count, axis=1)
-    
-    # Filter rows meeting at least 7 criteria
     filtered_data = data[data['Criteria Met'] >= 7]
     
     if not filtered_data.empty:
         #print(f"Rows meeting at least 7 criteria:")
-        #print(filtered_data[['File Name', 'Criteria Met']])  # Adjust column names if different
+        #print(filtered_data[['File Name', 'Criteria Met']])  
 
-        # Copy files meeting the criteria to the destination folder
         for _, row in filtered_data.iterrows():
             file_path = os.path.join(folder_path, row['File Name'])
             print(f"File meets {row['Criteria Met']} criteria: {row['File Name']}")
