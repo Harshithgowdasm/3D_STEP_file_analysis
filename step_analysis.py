@@ -12,7 +12,7 @@ from OCC.Core.Bnd import Bnd_Box
 from OCC.Core.BRepBndLib import brepbndlib
 from OCC.Core.GeomLProp import GeomLProp_SLProps
 from OCC.Core.GProp import GProp_GProps
-from OCC.Core.BRepGProp import brepgprop_VolumeProperties
+from OCC.Core.BRepGProp import brepgprop
 
 
 def analyze_step_file(file_path):
@@ -86,7 +86,7 @@ def get_volume(file_path):
     shape = step_reader.Shape()
 
     props = GProp_GProps()
-    brepgprop_VolumeProperties(shape, props)
+    brepgprop.VolumeProperties(shape, props)
     return props.Mass()
 
 
@@ -136,6 +136,14 @@ def run_analysis_for_folder(folder_path):
     for filename in os.listdir(folder_path):
         if filename.endswith(".step"):
             file_path = os.path.join(folder_path, filename)
+            file_size_kb = os.path.getsize(file_path) / 1024  # Get file size in KB
+            
+            # Skip files larger than 20MB
+            if file_size_kb > 20 * 1024:  # 20MB = 20 * 1024 KB
+                print(f"Skipping file (size > 20MB): {filename}")
+                continue
+
+            # Proceed with analysis if the file is within size limits
             face_edge_result = analyze_step_file(file_path)
             curvature_result = analyze_complexity_by_curvature(file_path)
             volume = get_volume(file_path)
@@ -146,12 +154,14 @@ def run_analysis_for_folder(folder_path):
                 **face_edge_result,
                 **curvature_result,
                 "Volume": volume,
-                "Hole Count": holes
+                "Hole Count": holes,
+                "size": file_size_kb
             }
             all_results.append(combined_result)
-
+            print(f"Analysis sucessfull for {filename} file")
     df = pd.DataFrame(all_results)
     return df
+
 
 def criteria_count(row):
     criteria = [
@@ -163,10 +173,9 @@ def criteria_count(row):
         0 > row["Mean Curvature"] >= -0.15,
         0 < row["Curvature Std Dev"] <= 0.2,
         1e5 <= row["Volume"] <= 0.13e6,
-        5 <= row["Hole Count"] <= 50
-        # file size filter 
+        5 <= row["Hole Count"] <= 50,
+        row["size"] <= 20000 # file size filter 
         # 
-
     ]
 
     return sum(criteria)

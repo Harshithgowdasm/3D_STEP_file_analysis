@@ -1,7 +1,7 @@
 import os
 
 # Specify the folder path
-folder_path = 'Selected'
+folder_path =  r"S:\03_HiWiS\Harshith\ILSC-APP\abc_0000_step_v00\step_00"
 start_number = 1
 
 # Get all files in the directory
