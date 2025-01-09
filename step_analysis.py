@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import pandas as pd
 import numpy as np
@@ -129,6 +130,18 @@ def analyze_complexity_by_curvature(file_path):
     }
 
 
+def is_assembly_by_entity_count(file_path):
+    """
+    Check if the STEP file is an assembly by counting PRODUCT entities.
+    """
+    try:
+        with open(file_path, 'r') as file:
+            content = file.read()
+        product_count = len(re.findall(r'PRODUCT\(', content))
+        return product_count > 1  # More than one product indicates an assembly
+    except Exception as e:
+        print(f"Error reading file for entity count: {e}")
+        return None
 
 def run_analysis_for_folder(folder_path):
     all_results = []
@@ -139,9 +152,13 @@ def run_analysis_for_folder(folder_path):
             file_size_kb = os.path.getsize(file_path) / 1024  # Get file size in KB
             
             # Skip files larger than 20MB
-            if file_size_kb > 5 * 1024:  # 20MB = 20 * 1024 KB
+            if file_size_kb > 20 * 1024:  # 20MB = 20 * 1024 KB
                 print(f"Skipping file (size > 20MB): {filename}")
                 continue
+
+            # Determine if the file is a part or an assembly
+            is_assembly = is_assembly_by_entity_count(file_path)
+            ispart = 0 if is_assembly else 1
 
             # Proceed with analysis if the file is within size limits
             face_edge_result = analyze_step_file(file_path)
@@ -155,13 +172,14 @@ def run_analysis_for_folder(folder_path):
                 **curvature_result,
                 "Volume": volume,
                 "Hole Count": holes,
-                "size": file_size_kb
+                "size": file_size_kb,
+                "ispart": ispart
             } 
             all_results.append(combined_result)
-            print(f"Analysis sucessfull for {filename} file")
+            print(f"Analysis successful for {filename} file")
+
     df = pd.DataFrame(all_results)
     return df
-
 
 def criteria_count(row):
     criteria = [
@@ -174,12 +192,11 @@ def criteria_count(row):
         0 < row["Curvature Std Dev"] <= 0.2,
         1e5 <= row["Volume"] <= 0.13e6,
         5 <= row["Hole Count"] <= 50,
-        row["size"] <= 10000 # file size filter 
-        # 
+        row["size"] <= 10000,  # file size filter 
+        row["ispart"] == 1
     ]
 
     return sum(criteria)
-
 
 def file_selection(folder_path, destination_folder):
     if not os.path.exists(destination_folder):
@@ -190,9 +207,6 @@ def file_selection(folder_path, destination_folder):
     filtered_data = data[data['Criteria Met'] >= 7]
     
     if not filtered_data.empty:
-        #print(f"Rows meeting at least 7 criteria:")
-        #print(filtered_data[['File Name', 'Criteria Met']])  
-
         for _, row in filtered_data.iterrows():
             file_path = os.path.join(folder_path, row['File Name'])
             print(f"File meets {row['Criteria Met']} criteria: {row['File Name']}")
