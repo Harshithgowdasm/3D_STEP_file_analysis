@@ -139,7 +139,7 @@ def run_analysis_for_folder(folder_path):
             file_size_kb = os.path.getsize(file_path) / 1024  # Get file size in KB
             
             # Skip files larger than 20MB
-            if file_size_kb > 20 * 1024:  # 20MB = 20 * 1024 KB
+            if file_size_kb > 5 * 1024:  # 20MB = 20 * 1024 KB
                 print(f"Skipping file (size > 20MB): {filename}")
                 continue
 
@@ -156,7 +156,7 @@ def run_analysis_for_folder(folder_path):
                 "Volume": volume,
                 "Hole Count": holes,
                 "size": file_size_kb
-            }
+            } 
             all_results.append(combined_result)
             print(f"Analysis sucessfull for {filename} file")
     df = pd.DataFrame(all_results)
@@ -174,7 +174,7 @@ def criteria_count(row):
         0 < row["Curvature Std Dev"] <= 0.2,
         1e5 <= row["Volume"] <= 0.13e6,
         5 <= row["Hole Count"] <= 50,
-        row["size"] <= 20000 # file size filter 
+        row["size"] <= 10000 # file size filter 
         # 
     ]
 

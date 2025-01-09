@@ -3,7 +3,7 @@ import os
 import step_analysis
 
 source_folder = r"S:\03_HiWiS\Harshith\ILSC-APP\abc_0000_step_v00\step_06"
-destination_folder = "selected_automation"
+destination_folder = "Simple_selected"
 
 # Create the destination folder inside the source folder
 destination_path = os.path.join(source_folder, destination_folder)
