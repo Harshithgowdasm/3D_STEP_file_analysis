@@ -151,9 +151,9 @@ def run_analysis_for_folder(folder_path):
             file_path = os.path.join(folder_path, filename)
             file_size_kb = os.path.getsize(file_path) / 1024  # Get file size in KB
             
-            # Skip files larger than 20MB
-            if file_size_kb > 20 * 1024:  # 20MB = 20 * 1024 KB
-                print(f"Skipping file (size > 20MB): {filename}")
+            # Skip files larger than 5MB
+            if file_size_kb > 5 * 1024:  # 20MB = 20 * 1024 KB
+                print(f"Skipping file (size > 5MB): {filename}")
                 continue
 
             # Determine if the file is a part or an assembly
@@ -183,17 +183,14 @@ def run_analysis_for_folder(folder_path):
 
 def criteria_count(row):
     criteria = [
-        10 <= row["Total Faces"] <= 150,
-        2 <= row["Curved Faces"] <= 50,
-        100 <= row["Total Edges"] <= 1500,
-        100 <= row["Vertices"] <= 2500,
-        row["Bounding Box Volume"] < 0.2e6,
-        0 > row["Mean Curvature"] >= -0.15,
-        0 < row["Curvature Std Dev"] <= 0.2,
-        1e5 <= row["Volume"] <= 0.13e6,
+        20 <= row["Total Faces"] <= 120, 
+        5 <= row["Curved Faces"] <= 50, 
+        100 <= row["Total Edges"] <= 700, 
+        200 <= row["Vertices"] <= 1500,  
+        1e3 <= row["Volume"] <= 1.5e5, 
         5 <= row["Hole Count"] <= 50,
-        row["size"] <= 10000,  # file size filter 
-        row["ispart"] == 1
+        25 <= row["size"] <= 500,  # file size filter  
+        row["ispart"] == 1 
     ]
 
     return sum(criteria)
@@ -204,7 +201,7 @@ def file_selection(folder_path, destination_folder):
 
     data = run_analysis_for_folder(folder_path)
     data['Criteria Met'] = data.apply(criteria_count, axis=1)
-    filtered_data = data[data['Criteria Met'] >= 7]
+    filtered_data = data[data['Criteria Met'] >= 8]
     
     if not filtered_data.empty:
         for _, row in filtered_data.iterrows():
