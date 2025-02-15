@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+# This scipt is used to merge two csv files and organize the data
 # replace with your folder's path
 folder_path = r'S:\03_HiWiS\Harshith\ILSC-APP\abc_0000_step_v00\results'
 all_files = os.listdir(folder_path)

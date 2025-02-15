@@ -1,3 +1,6 @@
+#This script organizes files in a specified directory by distributing them into subfolders, each containing up to 1,000 files. 
+# It sequentially creates folders (e.g., "step_00", "step_01") and moves files into them, stopping after creating 10 folders.
+
 import os
 import shutil
 

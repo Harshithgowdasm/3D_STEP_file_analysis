@@ -1,3 +1,18 @@
+"""
+STEP File Analysis Script
+
+This script has required functions to analyzes a collection of STEP files in a given folder. It checks for various properties, including:
+- The number of faces, edges, vertices
+- Whether the faces are curved
+- The volume of the shape
+- Whether the shape contains holes
+- The complexity of the shape based on curvature
+- File size and whether the file represents an assembly or part
+
+The script then filters the files based on certain criteria and copies the selected files to a destination folder.
+
+"""
+
 import os
 import re
 import shutil
@@ -15,8 +30,17 @@ from OCC.Core.GeomLProp import GeomLProp_SLProps
 from OCC.Core.GProp import GProp_GProps
 from OCC.Core.BRepGProp import brepgprop
 
-
+# Function to analyze the faces, edges, and vertices of a STEP file
 def analyze_step_file(file_path):
+    """
+    Analyzes the number of faces, edges, and vertices in a STEP file.
+
+    Args:
+        file_path (str): Path to the STEP file.
+
+    Returns:
+        dict: Contains the total number of faces, curved faces, edges, and vertices.
+    """
     step_reader = STEPControl_Reader()
     status = step_reader.ReadFile(file_path)
     if status != 1:
@@ -25,16 +49,19 @@ def analyze_step_file(file_path):
     step_reader.TransferRoots()
     shape = step_reader.Shape()
 
+    # Initialize counts
     face_count = 0
     curved_face_count = 0
     edge_count = 0
     vert_count = 0
 
+    # Count vertices in the shape
     vertices_explorer = TopExp_Explorer(shape, TopAbs_VERTEX)
     while vertices_explorer.More():
         vertices_explorer.Next()
         vert_count += 1
 
+    # Count faces in the shape and check for curved faces
     face_explorer = TopExp_Explorer(shape, TopAbs_FACE)
     while face_explorer.More():
         face = face_explorer.Current()
@@ -44,11 +71,13 @@ def analyze_step_file(file_path):
             curved_face_count += 1
         face_explorer.Next()
 
+    # Count edges in the shape
     edge_explorer = TopExp_Explorer(shape, TopAbs_EDGE)
     while edge_explorer.More():
         edge_explorer.Next()
         edge_count += 1
 
+    # Return the results as a dictionary
     return {
         "Total Faces": face_count,
         "Curved Faces": curved_face_count,
@@ -56,8 +85,17 @@ def analyze_step_file(file_path):
         "Vertices": vert_count,
     }
 
-
+# Function to detect the number of holes (cylindrical faces) in a STEP file
 def detect_holes(step_file_path):
+    """
+    Detects the number of cylindrical faces in a STEP file which likely represent holes.
+
+    Args:
+        step_file_path (str): Path to the STEP file.
+
+    Returns:
+        int: Number of cylindrical faces representing holes.
+    """
     step_reader = STEPControl_Reader()
     status = step_reader.ReadFile(step_file_path)
     if status != 1:
@@ -70,6 +108,7 @@ def detect_holes(step_file_path):
     explorer = TopExp_Explorer(shape, TopAbs_FACE)
     hole_count = 0
 
+    # Iterate through each face and check if it's cylindrical (indicating a hole)
     while explorer.More():
         face = explorer.Current()
         surface = BRepAdaptor_Surface(face)
@@ -79,19 +118,38 @@ def detect_holes(step_file_path):
 
     return hole_count
 
-
+# Function to get the volume of a STEP file
 def get_volume(file_path):
+    """
+    Extracts the volume of a STEP file.
+
+    Args:
+        file_path (str): Path to the STEP file.
+
+    Returns:
+        float: Volume of the STEP file.
+    """
     step_reader = STEPControl_Reader()
     step_reader.ReadFile(file_path)
     step_reader.TransferRoots()
     shape = step_reader.Shape()
 
+    # Use OpenCascade to calculate the volume of the shape
     props = GProp_GProps()
     brepgprop.VolumeProperties(shape, props)
     return props.Mass()
 
-
+# Function to analyze the complexity of the shape based on curvature
 def analyze_complexity_by_curvature(file_path):
+    """
+    Analyzes the complexity of a STEP file based on the curvature of its faces.
+
+    Args:
+        file_path (str): Path to the STEP file.
+
+    Returns:
+        dict: Contains bounding box volume, mean curvature, and curvature standard deviation.
+    """
     step_reader = STEPControl_Reader()
     status = step_reader.ReadFile(file_path)
     if status != 1:
@@ -100,14 +158,15 @@ def analyze_complexity_by_curvature(file_path):
     step_reader.TransferRoots()
     shape = step_reader.Shape()
 
+    # Calculate the bounding box of the shape
     bbox = Bnd_Box()
     brepbndlib.Add(shape, bbox)
     xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
     bbox_volume = (xmax - xmin) * (ymax - ymin) * (zmax - zmin)
 
+    # Analyze the curvature of the faces
     curvatures = []
     face_explorer = TopExp_Explorer(shape, TopAbs_FACE)
-
     while face_explorer.More():
         face = face_explorer.Current()
         geom_surface = BRep_Tool.Surface(face)
@@ -120,6 +179,7 @@ def analyze_complexity_by_curvature(file_path):
             curvatures.append(props.MeanCurvature())
         face_explorer.Next()
 
+    # Calculate the mean and standard deviation of curvatures
     curvature_std_dev = np.std(curvatures)
     curvature_mean = np.mean(curvatures)
 
@@ -129,10 +189,16 @@ def analyze_complexity_by_curvature(file_path):
         "Curvature Std Dev": curvature_std_dev,
     }
 
-
+# Function to check if the STEP file represents an assembly based on the presence of PRODUCT entities
 def is_assembly_by_entity_count(file_path):
     """
-    Check if the STEP file is an assembly by counting PRODUCT entities.
+    Determines if a STEP file is an assembly by counting the PRODUCT entities.
+
+    Args:
+        file_path (str): Path to the STEP file.
+
+    Returns:
+        bool: True if the file represents an assembly, False if it's a part.
     """
     try:
         with open(file_path, 'r') as file:
@@ -143,9 +209,20 @@ def is_assembly_by_entity_count(file_path):
         print(f"Error reading file for entity count: {e}")
         return None
 
+# Function to run the analysis for all STEP files in a folder
 def run_analysis_for_folder(folder_path):
+    """
+    Runs the analysis for all STEP files in a given folder and stores the results in a DataFrame.
+
+    Args:
+        folder_path (str): Path to the folder containing STEP files.
+
+    Returns:
+        DataFrame: Contains the analysis results for each STEP file.
+    """
     all_results = []
 
+    # Iterate through all STEP files in the folder
     for filename in os.listdir(folder_path):
         if filename.endswith(".step"):
             file_path = os.path.join(folder_path, filename)
@@ -156,16 +233,17 @@ def run_analysis_for_folder(folder_path):
                 print(f"Skipping file (size > 5MB): {filename}")
                 continue
 
-            # Determine if the file is a part or an assembly
+            # Check if the file is an assembly or part
             is_assembly = is_assembly_by_entity_count(file_path)
             ispart = 0 if is_assembly else 1
 
-            # Proceed with analysis if the file is within size limits
+            # Run the analysis if the file meets the size requirements
             face_edge_result = analyze_step_file(file_path)
             curvature_result = analyze_complexity_by_curvature(file_path)
             volume = get_volume(file_path)
             holes = detect_holes(file_path)
 
+            # Combine results into a dictionary
             combined_result = {
                 "File Name": filename,
                 **face_edge_result,
@@ -178,10 +256,21 @@ def run_analysis_for_folder(folder_path):
             all_results.append(combined_result)
             print(f"Analysis successful for {filename} file")
 
+    # Store the results in a DataFrame
     df = pd.DataFrame(all_results)
     return df
 
+# Function to apply selection criteria based on analysis results
 def criteria_count(row):
+    """
+    Checks if a file meets the predefined criteria for selection.
+
+    Args:
+        row (pandas.Series): A row from the DataFrame containing analysis results.
+
+    Returns:
+        int: Number of criteria met by the file.
+    """
     criteria = [
         20 <= row["Total Faces"] <= 120, 
         5 <= row["Curved Faces"] <= 50, 
@@ -195,14 +284,29 @@ def criteria_count(row):
 
     return sum(criteria)
 
+# Function to filter STEP files based on selection criteria and move them to a new folder
 def file_selection(folder_path, destination_folder):
+    """
+    Filters STEP files based on analysis criteria and copies the selected files to a destination folder.
+
+    Args:
+        folder_path (str): Path to the folder containing STEP files.
+        destination_folder (str): Path to the folder where selected files will be copied.
+
+    Returns:
+        DataFrame: Contains the analysis results for all files.
+    """
     if not os.path.exists(destination_folder):
         os.makedirs(destination_folder)
 
+    # Run the analysis for all files in the folder
     data = run_analysis_for_folder(folder_path)
-    data['Criteria Met'] = data.apply(criteria_count, axis=1)
-    filtered_data = data[data['Criteria Met'] >= 8]
     
+    # Apply the selection criteria
+    data['Criteria Met'] = data.apply(criteria_count, axis=1)
+    filtered_data = data[data['Criteria Met'] >= 8]  # Files that meet at least 8 criteria
+    
+    # If any files meet the criteria, copy them to the destination folder
     if not filtered_data.empty:
         for _, row in filtered_data.iterrows():
             file_path = os.path.join(folder_path, row['File Name'])

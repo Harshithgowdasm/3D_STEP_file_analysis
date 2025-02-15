@@ -1,8 +1,20 @@
+"""
+This script uses a variety of methods/techniques/algorithms to classify STEP files as either "Part" or "Assembly".  
+It implements multiple classification methods, but only Method 3 (entity count in `classify_step_file` function)  
+is validated and works accurately.  
+
+Methods included:
+1. Keyword-based search (disabled)
+2. OCC-based geometric analysis (disabled)
+3. Entity count-based classification (validated and accurate)
+
+Only Method 3 is used for classification in this script.
+"""
+
 import os
 import re
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.TopoDS import TopoDS_Compound
-
 
 def is_assembly_by_keywords(file_path):
     """
@@ -19,7 +31,6 @@ def is_assembly_by_keywords(file_path):
     except Exception as e:
         print(f"Error reading file for keyword search: {e}")
         return None
-
 
 def is_assembly_with_occ(file_path):
     """
@@ -40,7 +51,6 @@ def is_assembly_with_occ(file_path):
         print(f"Error processing file with OCC: {e}")
         return None
 
-
 def is_assembly_by_entity_count(file_path):
     """
     Count the number of PRODUCT entities in the STEP file.
@@ -54,35 +64,29 @@ def is_assembly_by_entity_count(file_path):
         print(f"Error counting entities in file: {e}")
         return None
 
-
 def classify_step_file(file_path):
     """
-    Classify the STEP file using multiple methods.
+    Classify the STEP file using multiple methods. Only Method 3 (Entity Count) accurtely classifies and used.
     """
     print(f"Classifying file: {file_path}")
 
-    # Method 2: Keyword Search
-    #result_keywords = is_assembly_by_keywords(file_path)
-    #print(f"Keyword Search Result: {result_keywords}")
+    # Method 1: Keyword Search (disabled)
+    # result_keywords = is_assembly_by_keywords(file_path)
+    # print(f"Keyword Search Result: {result_keywords}")
 
-    # Method 3: Using python-occ
-    #result_occ = is_assembly_with_occ(file_path)
-    #print(f"OCC Analysis Result: {result_occ}")
+    # Method 2: Using python-occ (disabled)
+    # result_occ = is_assembly_with_occ(file_path)
+    # print(f"OCC Analysis Result: {result_occ}")
 
-    # Method 4: Entity Count
+    # Method 3: Entity Count (validated method)
     result_entity_count = is_assembly_by_entity_count(file_path)
     print(f"Entity Count Result: {result_entity_count}")
 
-    # Combine results
-    if result_keywords is not None:
-        return "Assembly" if result_keywords else "Part"
-    if result_occ is not None:
-        return "Assembly" if result_occ else "Part"
+    # Combine results (only Method 3 is considered)
     if result_entity_count is not None:
         return "Assembly" if result_entity_count else "Part"
 
     return "Unknown"  # If all methods fail
-
 
 def test_directory(directory_or_file):
     """
@@ -90,13 +94,13 @@ def test_directory(directory_or_file):
     """
     # Check if the input is a file or a directory
     if os.path.isfile(directory_or_file):
-        # Single file
+        # Single file classification
         file_path = directory_or_file
         classification = classify_step_file(file_path)
         print(f"File: {os.path.basename(file_path)}, Classification: {classification}")
         return {os.path.basename(file_path): classification}
     elif os.path.isdir(directory_or_file):
-        # Directory
+        # Directory classification
         step_files = [
             f for f in os.listdir(directory_or_file)
             if f.lower().endswith('.step') or f.lower().endswith('.stp')
@@ -110,8 +114,6 @@ def test_directory(directory_or_file):
         return results
     else:
         raise ValueError(f"The provided path is neither a file nor a directory: {directory_or_file}")
-
-
 
 # Example usage
 if __name__ == "__main__":
